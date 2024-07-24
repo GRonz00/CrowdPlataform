@@ -1,4 +1,6 @@
 import heapq
+
+
 class EventList:
     def __init__(self, threshold=10):
         self.imminent_events = []
@@ -30,3 +32,9 @@ class EventList:
         while self.future_events and self.future_events[0].time <= current_time:
             event = heapq.heappop(self.future_events)
             self._insert_sorted(self.imminent_events, event)
+
+    def is_empty(self):
+        if self.imminent_events or self.future_events:
+            return False
+        else:
+            return True
