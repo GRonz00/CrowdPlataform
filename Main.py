@@ -1,5 +1,5 @@
 from enum import Enum
-
+from Server import Server, Server_state, ServerStructure
 from rngs import plantSeeds, selectStream
 from rvgs import Normal, Bernoulli, Exponential, Hyperexponential, calculate_p, idfStudent
 from EventList import *
@@ -13,16 +13,16 @@ MEAN_CAPACITY_SERVER = 3000000000
 V_CAPACITY_SERVER = 500000000
 MAX_CAPACITY_SERVER = MEAN_CAPACITY_SERVER + 2 / 3 * MEAN_CAPACITY_SERVER
 MIN_CAPACITY_SERVER = MEAN_CAPACITY_SERVER - 2 / 3 * MAX_CAPACITY_SERVER
-INTERARRIVAL_TIMES = 0.1
+INTERARRIVAL_TIMES = 0.25
 SERVICE_DEMANDS = 4
 N_OPERATION_MEAN = SERVICE_DEMANDS * MEAN_CAPACITY_SERVER
 arrivalTemp = START
 TIME_MAX_SERVER = 5 * SERVICE_DEMANDS
-MEAN_NOT_AVAILABLE_TIME = 50
+MEAN_NOT_AVAILABLE_TIME = 40
 MEAN_AVAILABLE_TIME = 60 - MEAN_NOT_AVAILABLE_TIME
 CV = 1
 BATCH_SIZE = 512
-N_BATCH = 64
+N_BATCH = 1024
 LOC = 0.95
 
 
@@ -70,29 +70,8 @@ class Job:
         #io non so la grandezza del job, ma solo la capacità dei server, cosi se vanno in coda 2 so quanto tempo gli manca non sapendo quanti giri fara in coda 2
 
 
-class Server:
-    def __init__(self, id, state, capacity, release_request=False, job=None):
-        self.release_request = release_request
-        self.job = job
-        self.state = state  #0 non disponibile, 1 liber, 2 occupato,
-        self.capacity = capacity
-        self.id = id
-
-    def get_capacity(self):
-        return self.capacity
-
-    def current_job(self, job):
-        self.job = job
-
-
-class Server_state(Enum):
-    NOT_AVAILABLE = 0
-    NOT_BUSY = 1
-    BUSY = 2
-
-
 def run_job(server, job, current_time, event_list):
-    server.state = Server_state.BUSY
+    server_list.update_state(server.id,Server_state.BUSY)
     t = job.n_operation / server.capacity  #tempo completamento job
     if t > TIME_MAX_SERVER:
         job.n_operation -= server.capacity * TIME_MAX_SERVER
@@ -101,13 +80,13 @@ def run_job(server, job, current_time, event_list):
     else:
         job.n_operation = 0
         event_list.insert(Event(current_time + t, EventType.COMPLETION, server.id))
-    server.current_job(job)
+    server_list.update_job(server.id,job)
 
 
 # Esempio d'uso
 if __name__ == "__main__":
 
-    server_list = []
+    server_list = ServerStructure()
     queue1 = []
     queue2 = []
     n_completions = 0
@@ -119,19 +98,14 @@ if __name__ == "__main__":
     plantSeeds(123456)
     for i in range(SERVERS):
         server_capacity = Normal(MEAN_CAPACITY_SERVER, V_CAPACITY_SERVER, MIN_CAPACITY_SERVER, MAX_CAPACITY_SERVER)
-        j = 0
-        while j < len(server_list) and server_list[
-            j].get_capacity() > server_capacity:  #ordine decrescente di capacità computazionale
-            j += 1
-        server_list.insert(j, Server(i + 1, Server_state(Bernoulli(MEAN_AVAILABLE_TIME / 60)),
-                                     server_capacity))
+        server_list.add_server(Server(i + 1, Server_state(Bernoulli(MEAN_AVAILABLE_TIME / 60)), server_capacity))
     event_list = EventList()
     event_list.insert(Event(0, EventType.ARRIVAL, 0))
     for i in range(SERVERS):
-        if server_list[i].state == Server_state.NOT_AVAILABLE:
-            event_list.insert(Event(Event.get_available(), EventType.AVAILABLE, i))
+        if server_list.search_by_id(i+1).state == Server_state.NOT_AVAILABLE:
+            event_list.insert(Event(Event.get_available(), EventType.AVAILABLE, i+1))
         else:
-            event_list.insert(Event(Event.get_not_available(), EventType.NOT_AVAILABLE, i))
+            event_list.insert(Event(Event.get_not_available(), EventType.NOT_AVAILABLE, i+1))
     # Avanza il tempo e gestisci gli eventi
     current_time = 0
     while not event_list.is_empty() and current_time < STOP:
@@ -142,21 +116,16 @@ if __name__ == "__main__":
                 n_op = Event.get_operation_n()
                 job = Job(n_op, current_time)
                 if not queue1:  #se la coda 1 è libera
-                    busy_servers = True
-                    for server in server_list:
-                        if server.state == Server_state.NOT_BUSY:  #cerco server libero con capacità maggiore
-                            run_job(server, job, current_time, event_list)
-                            busy_servers = False
-                            break
-                    if busy_servers:
+                    server = server_list.get_server_max_capacity_not_busy()
+                    if server:
+                        run_job(server, job, current_time, event_list)
+                    else:
                         queue1.append(job)
                 else:
                     queue1.append(job)
                 event_list.insert(Event(current_time + Event.get_arrival(), EventType.ARRIVAL, 0))
             case EventType.COMPLETION:
-                for server in server_list:
-                    if server.id == event.id_server:
-                        break
+                server = server_list.search_by_id(event.id_server)
                 job = server.job
                 if job.n_operation == 0:
                     n_completions += 1  #Welford
@@ -169,23 +138,19 @@ if __name__ == "__main__":
                         batch_mean += d_batch / k
                         batch_means.append(batch_mean)
                         print(k, response_time_mean)
-                        n_completions = 0
-                        response_time_mean = 0
-                        if k == 64:
+                        #n_completions = 0
+                        #response_time_mean = 0
+                        if k == N_BATCH:
                             stdev = sqrt(batch_sum / k)
                             u = 1 - 0.5 * (1 - LOC)
                             t = idfStudent(k - 1, u)
                             w = t * stdev / sqrt(k - 1)
                             print("con confidenza 95.5 il valore atteso è nel intervallo", batch_mean, "+o- ", w)
                             break
-
-
-
-
                 else:
                     queue2.append(job)
                 if server.release_request:
-                    server.state = Server_state.NOT_AVAILABLE
+                    server_list.update_state(server.id,Server_state.NOT_AVAILABLE)
                     event_list.insert(Event(current_time + Event.get_available(), EventType.AVAILABLE, server.id))
                 else:
                     if queue1:
@@ -196,13 +161,11 @@ if __name__ == "__main__":
                             job = queue2.pop(0)
                             run_job(server, job, current_time, event_list)
                         else:
-                            server.state = Server_state.NOT_BUSY
+                            server_list.update_state(server.id,Server_state.NOT_BUSY)
             case EventType.AVAILABLE:
-                for server in server_list:
-                    if server.id == event.id_server:
-                        break
-                server.release_request = False
-                server.state = Server_state.NOT_BUSY
+                server = server_list.search_by_id(event.id_server)
+                server_list.update_release(server.id,False)
+                server_list.update_state(server.id,Server_state.NOT_BUSY)
                 if queue1:
                     job = queue1.pop(0)
                     run_job(server, job, current_time, event_list)
@@ -212,13 +175,11 @@ if __name__ == "__main__":
                         run_job(server, job, current_time, event_list)
                 event_list.insert(Event(current_time + Event.get_not_available(), EventType.NOT_AVAILABLE, server.id))
             case EventType.NOT_AVAILABLE:
-                for server in server_list:
-                    if server.id == event.id_server:
-                        break
+                server = server_list.search_by_id(event.id_server)
                 if server.state == Server_state.BUSY:
-                    server.release_request = True
+                    server_list.update_release(server.id,True)
                 else:
-                    server.state = Server_state.NOT_AVAILABLE
+                    server_list.update_state(server.id,Server_state.NOT_AVAILABLE)
                     event_list.insert(Event(current_time + Event.get_available(), EventType.AVAILABLE, server.id))
         event_list.advance_time(current_time)
     # Grafico delle medie dei batch
@@ -228,4 +189,3 @@ if __name__ == "__main__":
     plt.title('Batch Mean Response Time Over Batches')
     plt.grid(True)
     plt.show()
-
