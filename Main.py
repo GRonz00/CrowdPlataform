@@ -17,14 +17,14 @@ INTERARRIVAL_TIMES = 0.25
 SERVICE_DEMANDS = 4
 N_OPERATION_MEAN = SERVICE_DEMANDS * MEAN_CAPACITY_SERVER
 arrivalTemp = START
-TIME_MAX_SERVER = 5 * SERVICE_DEMANDS
-MEAN_NOT_AVAILABLE_TIME = 40
+TIME_MAX_SERVER = 3 * SERVICE_DEMANDS
+MEAN_NOT_AVAILABLE_TIME = 54
 MEAN_AVAILABLE_TIME = 60 - MEAN_NOT_AVAILABLE_TIME
-CV = 1
-BATCH_SIZE = 512
-N_BATCH = 1024
+CV = 5
+BATCH_SIZE = 1028
+N_BATCH = 512
 LOC = 0.95
-
+#per stare sotto domanda di servizio cv basta MEAN_NOT_AVAILABLE_TIME/ 1, 57/ 2,
 
 class Event:
     def __init__(self, time, event_type, id_server):
@@ -90,9 +90,9 @@ if __name__ == "__main__":
     queue1 = []
     queue2 = []
     n_completions = 0
-    response_time_mean = 0
-    batch_mean = 0
-    batch_means = []
+    response_time_mean_single_batch = 0
+    batchs_mean = 0
+    batch_means_list = []
     batch_sum = 0
     k = 0
     plantSeeds(123456)
@@ -129,23 +129,23 @@ if __name__ == "__main__":
                 job = server.job
                 if job.n_operation == 0:
                     n_completions += 1  #Welford
-                    d = current_time - job.arrival_time - response_time_mean
-                    response_time_mean += d / n_completions
+                    d = current_time - job.arrival_time - response_time_mean_single_batch
+                    response_time_mean_single_batch += d / n_completions
                     if n_completions % BATCH_SIZE == 0:
                         k += 1
-                        d_batch = response_time_mean - batch_mean
+                        d_batch = response_time_mean_single_batch - batchs_mean
                         batch_sum += d_batch * d_batch * (k - 1) / k
-                        batch_mean += d_batch / k
-                        batch_means.append(batch_mean)
-                        print(k, response_time_mean)
-                        #n_completions = 0
-                        #response_time_mean = 0
+                        batchs_mean += d_batch / k
+                        batch_means_list.append(response_time_mean_single_batch)
+                        print(k, response_time_mean_single_batch)
+                        n_completions = 0
+                        response_time_mean_single_batch = 0
                         if k == N_BATCH:
                             stdev = sqrt(batch_sum / k)
                             u = 1 - 0.5 * (1 - LOC)
                             t = idfStudent(k - 1, u)
                             w = t * stdev / sqrt(k - 1)
-                            print("con confidenza 95.5 il valore atteso è nel intervallo", batch_mean, "+o- ", w)
+                            print("con confidenza 95.5 il valore atteso è nel intervallo", batchs_mean, "+o- ", w)
                             break
                 else:
                     queue2.append(job)
@@ -183,7 +183,7 @@ if __name__ == "__main__":
                     event_list.insert(Event(current_time + Event.get_available(), EventType.AVAILABLE, server.id))
         event_list.advance_time(current_time)
     # Grafico delle medie dei batch
-    plt.plot(batch_means, marker='o', linestyle='-', color='b')
+    plt.plot(batch_means_list, marker='o', linestyle='-', color='b')
     plt.xlabel('Batch Number')
     plt.ylabel('Batch Mean Response Time')
     plt.title('Batch Mean Response Time Over Batches')
