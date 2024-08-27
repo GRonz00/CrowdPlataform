@@ -32,7 +32,7 @@
 import sys
 from math import sqrt
 
-K = 10  # K is the maximum lag */
+K = 50  # K is the maximum lag */
 SIZE = (K + 1)
 
 i = 0  # data point index              */
