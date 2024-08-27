@@ -29,7 +29,7 @@ class EventList:
             return None
 
     def advance_time(self, current_time):
-        while self.future_events and self.future_events[0].time <= current_time:
+        while self.future_events:
             event = heapq.heappop(self.future_events)
             self._insert_sorted(self.imminent_events, event)
 
@@ -38,3 +38,8 @@ class EventList:
             return False
         else:
             return True
+
+    def clear(self):
+        self.imminent_events = []
+        self.future_events = []
+
