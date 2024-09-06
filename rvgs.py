@@ -223,8 +223,6 @@ def idfStudent(n, u):
 
 # Esempio d'uso
 if __name__ == "__main__":
-    # Esempio di utilizzo
-    cv = 1  # Coefficiente di variazione
-    for i in  range(100):
-        p = Exponential(cv)
-        print("p =",  p)
+
+    print(calculate_p())
+
