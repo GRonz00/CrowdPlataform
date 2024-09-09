@@ -32,6 +32,7 @@
 import sys
 from math import sqrt
 
+
 K = 25  # K is the maximum lag */
 SIZE = (K + 1)
 
