@@ -22,7 +22,6 @@ class Server_state(Enum):
     NOT_BUSY = 1
     BUSY = 2
 
-
 class ServerStructure:  #albero di ricerca misto hash map
     def __init__(self):
         self.hash_table = {}

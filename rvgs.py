@@ -220,7 +220,6 @@ def idfStudent(n, u):
 
     return (x)
 
-
 # Esempio d'uso
 if __name__ == "__main__":
 

@@ -42,4 +42,3 @@ class EventList:
     def clear(self):
         self.imminent_events = []
         self.future_events = []
-

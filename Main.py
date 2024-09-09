@@ -435,12 +435,3 @@ if __name__ == "__main__":
                 break
             case _:
                 print('inserire un intero tra 1 e 8')
-
-
-
-
-
-
-
-
-
