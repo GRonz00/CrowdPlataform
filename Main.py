@@ -33,7 +33,6 @@ REPLICATION_SIZE = 1800
 LOC = 0.95
 FINITE_HORIZON = False
 
-
 class Job:
     def __init__(self, n_operation, arrival_time):
         self.arrival_time = arrival_time
@@ -400,13 +399,6 @@ def increase_arrivals():
             plt.legend()
             plt.grid(True)
             plt.savefig('arrivals +' +str(inc)+'MNAT='+str(MEAN_NOT_AVAILABLE_TIME))
-
-
-
-
-
-
-
 
 if __name__ == "__main__":
     choice = 0
