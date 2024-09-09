@@ -181,7 +181,7 @@ def run_simulation(time_list):
                             batchs_mean += d_batch / k
                             time_list.append(batchs_mean)
                             #with open("batch_mean.txt", "a") as file:
-                            #    file.write(str(response_time_mean_single_batch) + "\n")
+                                #file.write(str(response_time_mean_single_batch) + "\n")
                             n_completions = 0
                             response_time_mean_single_batch = 0
                             if k == N_BATCH:

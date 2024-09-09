@@ -4,9 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c4c9c298-e59d-46aa-989c-e882e61399f4" name="Changes" comment="grafici">
+    <list default="true" id="c4c9c298-e59d-46aa-989c-e882e61399f4" name="Changes" comment="interfaccia">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Main.py" beforeDir="false" afterPath="$PROJECT_DIR$/Main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/acs.py" beforeDir="false" afterPath="$PROJECT_DIR$/acs.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,7 +61,7 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RunManager" selected="Python.Main">
+  <component name="RunManager">
     <configuration name="Main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="CrowdPlataform" />
       <option name="ENV_FILES" value="" />
@@ -185,7 +186,23 @@
       <option name="project" value="LOCAL" />
       <updated>1725636980830</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="grafici">
+      <option name="closed" value="true" />
+      <created>1725887399758</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1725887399758</updated>
+    </task>
+    <task id="LOCAL-00009" summary="interfaccia">
+      <option name="closed" value="true" />
+      <created>1725887460876</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1725887460876</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -207,6 +224,7 @@
     <MESSAGE value="cambiata struttura server" />
     <MESSAGE value="fix" />
     <MESSAGE value="grafici" />
-    <option name="LAST_COMMIT_MESSAGE" value="grafici" />
+    <MESSAGE value="interfaccia" />
+    <option name="LAST_COMMIT_MESSAGE" value="interfaccia" />
   </component>
 </project>
