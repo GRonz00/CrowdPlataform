@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from EventList import *
 from Server import Server, Server_state, ServerStructure
-from rngs import selectStream, plantSeeds
+from rngs import selectStream, plantSeeds, getSeed
 from rvgs import Exponential, Hyperexponential, Normal, Bernoulli, idfStudent
 
 START = 0.0
@@ -29,9 +29,10 @@ TIME_MAX_SERVER = 2 * SERVICE_DEMANDS
 BATCH_SIZE = 1028
 N_BATCH =256
 N_REPLICATION = 96
-REPLICATION_SIZE = 1800
+REPLICATION_SIZE = 64800#1800
 LOC = 0.95
 FINITE_HORIZON = False
+TRANSIENT_ANALYSIS = False
 
 class Job:
     def __init__(self, n_operation, arrival_time):
@@ -90,8 +91,8 @@ class EventType:
     AVAILABLE = 3
 
 
-def run_simulation(time_list):
-    plantSeeds(123456)
+def run_simulation(time_list, seed= 123456, capacity_list = None):
+    plantSeeds(seed)
     server_list = ServerStructure()
     queue1 = []
     queue2 = []
@@ -103,9 +104,13 @@ def run_simulation(time_list):
     reps_mean = 0
     k = 0
     v = 0
-    for i in range(SERVERS):
-        server_capacity = Normal(MEAN_CAPACITY_SERVER, V_CAPACITY_SERVER, MIN_CAPACITY_SERVER, MAX_CAPACITY_SERVER)
-        server_list.add_server(Server(i + 1, Server_state(Bernoulli(MEAN_AVAILABLE_TIME / 60)), server_capacity))
+    if not TRANSIENT_ANALYSIS:
+        for i in range(SERVERS):
+            server_capacity = Normal(MEAN_CAPACITY_SERVER, V_CAPACITY_SERVER, MIN_CAPACITY_SERVER, MAX_CAPACITY_SERVER)
+            server_list.add_server(Server(i + 1, Server_state(Bernoulli(MEAN_AVAILABLE_TIME / 60)), server_capacity))
+    else:
+        for i in range(SERVERS):
+            server_list.add_server(Server(i + 1, Server_state(Bernoulli(MEAN_AVAILABLE_TIME / 60)), capacity_list[i]))
     event_list = EventList()
     event_list.insert(Event(0, EventType.ARRIVAL, 0))
     for i in range(SERVERS):
@@ -139,7 +144,7 @@ def run_simulation(time_list):
                     if FINITE_HORIZON:
                         d = current_time - job.arrival_time - x
                         x += d / n_completions  #x è la media della singola rep
-                        if current_time >= REPLICATION_SIZE:
+                        if not TRANSIENT_ANALYSIS and current_time >= REPLICATION_SIZE:
                             k += 1
                             current_time = 0
                             queue1 = []
@@ -171,6 +176,12 @@ def run_simulation(time_list):
                                 w = t * stdev / sqrt(k - 1)
                                 print("con confidenza 95.5 il valore atteso è nel intervallo", reps_mean, "+o- ", w)
                                 break
+                        else:
+                            if n_completions % 20 == 0:
+                                time_list.append(x)
+                                if current_time >=REPLICATION_SIZE:
+                                    print('Con seme '+str(seed)+' si ha tempo medio di risposta '+ str(x) + 's')
+                                    return n_completions //20
                     else:
                         d = current_time - job.arrival_time - response_time_mean_single_batch
                         response_time_mean_single_batch += d / n_completions
@@ -343,7 +354,7 @@ def finite_horizont():
         plt.savefig('oriz_finito='+save_p[:1])
 def infinite_horizon():
     mean_not_av = [6, 9,12,15,18]
-    p_list = [0.5,0.6,0.7,0.8,0.9]
+    p_list = [0.9]#[0.5,0.6,0.7,0.8,0.9]
     for p in p_list:
         global P
         P = p
@@ -355,19 +366,17 @@ def infinite_horizon():
             MEAN_AVAILABLE_TIME = 60 - MEAN_NOT_AVAILABLE_TIME
             run_simulation(time_list)
         plt.figure()
-        #if pl>7:
-        #   plt.ylim([4.7, 7.5])
-        plt.plot(time_list[0:N_BATCH], marker='o', linestyle='-', color='b', markersize=1, label="prob = "+str(p_list[0]))
-        plt.plot(time_list[N_BATCH:2*N_BATCH], marker='o', linestyle='-', color='g', markersize=1, label="prob = "+str(p_list[1]))
-        plt.plot(time_list[2*N_BATCH:3*N_BATCH], marker='o', linestyle='-', color='r', markersize=1, label="prob = "+str(p_list[2]))
-        plt.plot(time_list[3*N_BATCH:4*N_BATCH], marker='o', linestyle='-', color='c', markersize=1, label="prob = "+str(p_list[3]))
-        plt.plot(time_list[4*N_BATCH:5*N_BATCH], marker='o', linestyle='-', color='m', markersize=1, label="prob = "+str(p_list[4]))
+        plt.plot(time_list[0:N_BATCH], marker='o', linestyle='-', color='b', markersize=1, label="mean unavailability time = "+str(mean_not_av[0]))
+        plt.plot(time_list[N_BATCH:2*N_BATCH], marker='o', linestyle='-', color='g', markersize=1, label="mean unavailability time = "+str(mean_not_av[1]))
+        plt.plot(time_list[2*N_BATCH:3*N_BATCH], marker='o', linestyle='-', color='r', markersize=1, label="mean unavailability time = "+str(mean_not_av[2]))
+        plt.plot(time_list[3*N_BATCH:4*N_BATCH], marker='o', linestyle='-', color='c', markersize=1, label="mean unavailability time = "+str(mean_not_av[3]))
+        plt.plot(time_list[4*N_BATCH:5*N_BATCH], marker='o', linestyle='-', color='m', markersize=1, label="mean unavailability time = "+str(mean_not_av[4]))
         plt.xlabel('Batch Number')
         plt.ylabel('Response Time')
         plt.title('Prob = '+str(p))
         plt.legend()
         plt.grid(True)
-        plt.savefig('infinito_prob= '+ str(p*10)[:1])
+        plt.savefig('infinito_proba= '+ str(p*10)[:1])
 def increase_arrivals():
     arr_list = [0.0476190476,0.0454545455,0.0434782609,0.041666667]
     inc = 0
@@ -400,6 +409,52 @@ def increase_arrivals():
             plt.grid(True)
             plt.savefig('arrivals +' +str(inc)+'MNAT='+str(MEAN_NOT_AVAILABLE_TIME))
 
+def analisi_transitorio():
+    l = [6,0.5],[12,0.7],[18,0.9]
+
+    global TRANSIENT_ANALYSIS
+    TRANSIENT_ANALYSIS= True
+    global FINITE_HORIZON
+    FINITE_HORIZON = True
+    for i in l:
+        global MEAN_NOT_AVAILABLE_TIME
+        MEAN_NOT_AVAILABLE_TIME= i[0]
+        global MEAN_AVAILABLE_TIME
+        MEAN_AVAILABLE_TIME= 60 - MEAN_NOT_AVAILABLE_TIME
+        global P
+        P = i[1]
+        seed_list = []
+        time_list=[]
+        seed = 123456789
+        seed_list.append(seed)
+        size_list = []
+        capacity_list = []
+        for i in range(SERVERS):
+            capacity_list.append(Normal(MEAN_CAPACITY_SERVER, V_CAPACITY_SERVER, MIN_CAPACITY_SERVER, MAX_CAPACITY_SERVER))
+        for i in range (0,5):
+            size_list.append(run_simulation(time_list, seed, capacity_list))
+            seed = getSeed()
+            seed_list.append(seed)
+        plt.figure()
+        plt.plot(time_list[1:size_list[0]], marker='o', linestyle='-', color='b', markersize=1, label="seed = "+str(seed_list[0]))
+        plt.plot(time_list[size_list[0]+1:size_list[0]+size_list[1]], marker='o', linestyle='-', color='g', markersize=1, label="seed = "+str(seed_list[1]))
+        plt.plot(time_list[size_list[0]+size_list[1]+1:size_list[0]+size_list[1]+size_list[2]], marker='o', linestyle='-', color='r', markersize=1, label="seed = "+str(seed_list[2]))
+        plt.plot(time_list[size_list[0]+size_list[1]+size_list[2]+1:size_list[0]+size_list[1]+size_list[2]+size_list[3]], marker='o', linestyle='-', color='c', markersize=1, label="seed = "+str(seed_list[3]))
+        plt.plot(time_list[size_list[0]+size_list[1]+size_list[2]+size_list[3]+1:size_list[0]+size_list[1]+size_list[2]+size_list[3]+size_list[4]], marker='o', linestyle='-', color='m', markersize=1, label="seed = "+str(seed_list[4]))
+        plt.ylim([4.7, 5.9])
+        plt.xlabel('job')
+        plt.ylabel('Response Time')
+        plt.title('Analisi transitorio')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+
+
+
+
+
+
 if __name__ == "__main__":
     choice = 0
     while choice != 8:
@@ -407,15 +462,16 @@ if __name__ == "__main__":
         print('2) valida il sistema rispetto al numero di server')
         print('3) valida il sistema rispetto alla varianza')
         print('4) valida il sistema rispetto alla frequenza degli arrivi')
-        print('5) analisi del transitorio rispetto varianza e tempo indisponibilità server')
+        print('5) analisi intervallo di confidenza orizonte finito rispetto varianza e tempo indisponibilità server')
         print('6) analisi della stazionarietà rispetto varianza e tempo indisponibilità server ')
         print('7) analisi della stazionarietà rispetto incremento degli arrivi')
-        print('8) fine')
+        print('8) analisi transitorio')
+        print('9) fine')
         print('seleziona scelta:')
         try:
             choice = int(input())
         except ValueError:
-            choice = 9
+            choice = 10
         match choice:
             case 1:
                 server_verification()
@@ -432,6 +488,8 @@ if __name__ == "__main__":
             case 7:
                 increase_arrivals()
             case 8:
+                analisi_transitorio()
+            case 9:
                 break
             case _:
-                print('inserire un intero tra 1 e 8')
+                print('inserire un intero tra 1 e 9')
